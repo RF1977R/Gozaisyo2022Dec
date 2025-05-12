@@ -7,7 +7,7 @@ import base64
 import os
 
 # --- 設定 ---
-GPX_FILE = "yamap_2022-12-03_07_21.gpx"
+GPX_FILE = "static_data/yamap_2022-12-03_07_21.gpx"
 PHOTO_FOLDER = "static_data/photos"
 
 # --- ヘッダー ---
