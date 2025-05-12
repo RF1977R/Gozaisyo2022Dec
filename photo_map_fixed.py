@@ -1,65 +1,49 @@
 import streamlit as st
-import gpxpy
 import folium
-from streamlit_folium import st_folium
-from PIL import Image
+from folium import IFrame
 import base64
-import os
+import gpxpy
+from streamlit_folium import st_folium
 
-# --- 設定 ---
+# --- 定数設定 ---
 GPX_FILE = "static_data/yamap_2022-12-03_07_21.gpx"
-PHOTO_FOLDER = "static_data/photos"
+PHOTO_DIR = Path("static_data/photos")
 
-# --- ヘッダー ---
-st.set_page_config(layout="wide")
-st.title("登山ルートと写真マップ")
-
-# --- GPX読み込み ---
+# --- GPXファイルの読み込み ---
 with open(GPX_FILE, "r", encoding="utf-8") as f:
     gpx = gpxpy.parse(f)
 
-# --- 緯度経度リスト抽出 ---
 coords = []
 for track in gpx.tracks:
     for segment in track.segments:
         for point in segment.points:
             coords.append((point.latitude, point.longitude))
 
-center = coords[len(coords)//2] if coords else (35.0, 135.0)
+# 中心座標（全体の中間点）
+center = coords[len(coords) // 2]
 
-# --- 地図生成 ---
-m = folium.Map(location=center, zoom_start=13)
-folium.PolyLine(coords, color='blue', weight=3).add_to(m)
+# --- 地図の生成とルート描画 ---
+m = folium.Map(location=center, tiles="OpenStreetMap")
+folium.PolyLine(coords, color="blue", weight=3).add_to(m)
 
-# --- 写真マーカー配置 ---
-if os.path.exists(PHOTO_FOLDER):
-    photos = sorted(os.listdir(PHOTO_FOLDER))
-    for i, photo in enumerate(photos):
-        if not photo.lower().endswith(('.jpg', '.jpeg', '.png')):
-            continue
-        try:
-            with open(os.path.join(PHOTO_FOLDER, photo), "rb") as img_file:
-                img_data = img_file.read()
-                encoded = base64.b64encode(img_data).decode()
-                html = f'<img src="data:image/jpeg;base64,{encoded}" width="300">'
-                iframe = folium.IFrame(html, width=320, height=320)
-                popup = folium.Popup(iframe, max_width=320)
-                folium.Marker(
-                    location=center,  # 写真のExif位置情報なしのため中央に仮配置
-                    popup=popup,
-                    icon=folium.Icon(color='orange', icon='camera', prefix='fa')
-                ).add_to(m)
-        except Exception as e:
-            print(f"Error loading {photo}: {e}")
-
-# --- 地図表示 ---
-st_folium(m, width=1000)
-
-# --- 写真一覧 ---
-st.markdown("## 📸 写真ギャラリー")
-cols = st.columns(3)
+# --- 写真表示マーカー追加 ---
+photos = sorted(PHOTO_DIR.glob("*.jpg")) + sorted(PHOTO_DIR.glob("*.jpeg"))
 for i, photo in enumerate(photos):
-    if photo.lower().endswith(('.jpg', '.jpeg', '.png')):
-        image_path = os.path.join(PHOTO_FOLDER, photo)
-        img = Image.open(image_path)
-        cols[i % 3].image(img, caption=photo, use_column_width=True)
+    # 座標のインデックスを写真の数に合わせて間引く
+    if i >= len(coords): break
+    latlon = coords[i]
+
+    # Base64エンコード
+    with open(photo, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+    html = f'<img src="data:image/jpeg;base64,{encoded}" width="200">'
+    iframe = IFrame(html, width=210, height=210)
+    popup = folium.Popup(iframe, max_width=2650)
+    folium.Marker(latlon, popup=popup, icon=folium.Icon(color="orange", icon="camera")).add_to(m)
+
+# --- 表示エリアを全体にフィットさせる ---
+m.fit_bounds([coords[0], coords[-1]])
+
+# --- Streamlit 表示 ---
+st.title("登山ルートと写真マップ")
+st_data = st_folium(m, width=1000, height=700)
