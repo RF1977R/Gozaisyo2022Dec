@@ -51,11 +51,15 @@ def get_photo_location(photo_path):
         return None
 
 # 地図を作成（ルート中央を中心に）
-center = coords[len(coords)//2]
-m = folium.Map(location=center, zoom_start=15)
+#	center = coords[len(coords)//2]
+#	m = folium.Map(location=center, zoom_start=15)
+m = folium.Map(zoom_start=15)  # 中心点は一旦不要
 
 # ルートをポリラインで追加
 folium.PolyLine(coords, color='blue', weight=3).add_to(m)
+
+
+
 
 # 写真付きマーカーを追加（Exif位置情報を使用）
 for photo_path in sorted(PHOTO_DIR.glob("*.jpg")):
