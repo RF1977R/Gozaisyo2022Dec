@@ -58,7 +58,8 @@ m = folium.Map(zoom_start=15)  # 中心点は一旦不要
 # ルートをポリラインで追加
 folium.PolyLine(coords, color='blue', weight=3).add_to(m)
 
-
+# 地図の表示範囲をルート全体に自動調整
+m.fit_bounds(coords)
 
 
 # 写真付きマーカーを追加（Exif位置情報を使用）
