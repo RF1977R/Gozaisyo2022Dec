@@ -32,8 +32,11 @@ m = folium.Map(location=center, zoom_start=15)
 # ルートをポリラインで追加
 folium.PolyLine(coords, color='blue', weight=3).add_to(m)
 
-# 写真付きマーカーを追加（仮にルート中央に全ての写真を配置）
-for photo_path in sorted(PHOTO_DIR.glob("*.jpg")):
+# 写真付きマーカーをルート上に順次追加
+for i, photo_path in enumerate(sorted(PHOTO_DIR.glob("*.jpg"))):
+    if i >= len(coords):
+        break  # 写真数がトラックポイントを超えたら終了
+
     img = Image.open(photo_path)
     thumbnail = img.copy()
     thumbnail.thumbnail((300, 300))
@@ -42,7 +45,12 @@ for photo_path in sorted(PHOTO_DIR.glob("*.jpg")):
     img_b64 = base64.b64encode(buffer.getvalue()).decode()
     image_url = f"{GITHUB_BASE_URL}/{photo_path.name}"
     img_html = f'<a href="{image_url}" target="_blank"><img src="data:image/jpeg;base64,{img_b64}" width="300"></a>'
-    folium.Marker(center, popup=img_html, icon=folium.Icon(color='orange', icon='camera', prefix='fa')).add_to(m)
+    
+    folium.Marker(
+        coords[i],
+        popup=img_html,
+        icon=folium.Icon(color='orange', icon='camera', prefix='fa')
+    ).add_to(m)
 
 # Streamlitで表示
 st.title("登山ルートと写真マップ")
